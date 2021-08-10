@@ -1,0 +1,43 @@
+body {
+  font-size: .875rem;
+}
+
+.navbar-brand {
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, .25);
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, .25);
+}
+
+.map-related-button:enabled {
+  background-color: #61c07dad;
+  font-weight: bold;
+  color: black;
+  border-width: 2pt;
+}
+
+/* [FULL SCREEN SPINNER] */
+#spinner-back, #spinner-front {
+  position: fixed;
+  width: 100vw;
+  transition: all 1s;
+  visibility: hidden;
+  opacity: 0;
+}
+#spinner-back {
+  z-index: 1500;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+}
+#spinner-front {
+  z-index: 1501;
+  color: #fff;
+  text-align: center;
+  margin-top: 50vh;
+  transform: translateY(-50%);
+}
+#spinner-back.show, #spinner-front.show {
+  visibility: visible;
+  opacity: 1;
+}
