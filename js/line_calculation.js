@@ -8,14 +8,24 @@ import { read_all_fields } from './utils.js'
 
 export function generateLines (sa) {
     spinner_show();
+    let field_values = read_all_fields();
     let general_direction = quick_line_angle(sa);
     let rotated_bbox_ply = safe_bbox_polygon(sa, general_direction);
-    let line_spacing = calculate_line_spacing(read_all_fields());
+    let line_spacing = calculate_line_spacing(field_values);
     let initial_survey_lines = line_generator(rotated_bbox_ply, line_spacing);
-    let clipped_survey_lines = line_clip(initial_survey_lines, sa);
+    let clipped_survey_lines = line_clip(initial_survey_lines, sa, line_spacing);
+    let shot_spacing = calculate_shot_spacing(field_values);
+    let shot_points = calculate_shot_points(clipped_survey_lines, shot_spacing);
+    console.log(shot_points)
     L.geoJSON(clipped_survey_lines, {
         onEachFeature: function ( f, l ) {
             l.bindPopup(f.properties.survey_line_name);
+        }
+    }).addTo(map);
+
+    L.geoJSON(shot_points, {
+        onEachFeature: function ( f, l ) {
+            l.bindPopup(f.properties.shotpoint_name);
         }
     }).addTo(map);
     spinner_hide();
@@ -38,7 +48,6 @@ function quick_line_angle(sa) {
         if ( line_segment_bearing < 0 ) {
             line_segment_bearing += 180; 
         }
-        console.log(line_segment_bearing);
         let line_segment_distance = turf.distance(point_01, point_02, {units: 'meters'})
 
         if ( ( line_segment_bearing >=  0 && line_segment_bearing < 45 ) || line_segment_bearing == 180 ) {
@@ -66,7 +75,6 @@ function quick_line_angle(sa) {
             simple_line_direction[3][2] += line_segment_bearing;
         }
     });
-    console.log(simple_line_direction);
     let simple_line_direction_map = simple_line_direction.map(element => (element[1]));
     let max_length_index = simple_line_direction_map.indexOf(Math.max.apply(null, simple_line_direction_map));
     let general_direction = simple_line_direction[max_length_index][2] / simple_line_direction[max_length_index][0];
@@ -111,12 +119,17 @@ function line_generator(rotated_bbox_ply, line_spacing) {
 
     let line_list = [];
     for( let j=0; j<nr_of_lines; j++ ) {
-        line_list[j] = turf.lineString([line_start_point_list[j].geometry.coordinates, line_end_point_list[j].geometry.coordinates], {name: j});
+        if ( j % 2 == 0 ) {
+            line_list[j] = turf.lineString([line_start_point_list[j].geometry.coordinates, line_end_point_list[j].geometry.coordinates], {name: j});
+        } else {
+            line_list[j] = turf.lineString([line_end_point_list[j].geometry.coordinates, line_start_point_list[j].geometry.coordinates], {name: j});
+        }
     };
     return line_list
 }
 
-function line_clip(initial_survey_lines, sa) {
+function line_clip(initial_survey_lines, sa_initial, line_spacing) {
+    let sa = turf.buffer(sa_initial, line_spacing + 0.5, {units: 'meters'});
     let fgb = [];
     let bbPoly = turf.bboxPolygon(turf.bbox(sa));
     initial_survey_lines.forEach(element => {
@@ -141,4 +154,30 @@ function line_clip(initial_survey_lines, sa) {
     }
 
     return clipped_lines;
+}
+
+function calculate_shot_spacing( field_values ) {
+    let overlap_along = field_values.survey_overlap_along;
+    let footprint_y = field_values.survey_footprint_y;
+    let shot_spacing = ( 100 - overlap_along ) / 100 * footprint_y;
+
+    return shot_spacing;
+}
+
+function calculate_shot_points( clipped_survey_lines, shot_spacing ) {
+    let shot_point_counter = 0;
+    let shot_point_list = [];
+    turf.featureEach(clipped_survey_lines, function ( currentFeature, featureIndex ) {
+        let line_length = turf.length(currentFeature, {units: 'meters'})
+        let nr_of_shotpoints = Math.floor( line_length / shot_spacing );
+        for ( let i=1; i<nr_of_shotpoints; i++ ) {
+            let current_shot_point = turf.along(currentFeature, shot_spacing * i, {units: 'meters'});
+            current_shot_point.properties.shotpoint = shot_point_counter;
+            current_shot_point.properties.shotpoint_name = 'shotpoint_' + zeroPad(shot_point_counter, 6 );
+            shot_point_list.push(current_shot_point);
+            shot_point_counter++;
+        }
+    })
+    let shotpoint_collection = turf.featureCollection(shot_point_list);
+    return shotpoint_collection;
 }

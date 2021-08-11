@@ -7,7 +7,8 @@ export class DronePresets {
                 focalLength: 8.8,
                 pixelPitch: 2.41,
                 resolution_x: 5472,
-                resolution_y: 3648
+                resolution_y: 3648,
+                image_size: 30
             },
             {
                 key: 'p3p',
@@ -15,7 +16,26 @@ export class DronePresets {
                 focalLength: 3.61,
                 pixelPitch: 1.56,
                 resolution_x: 4000,
-                resolution_y: 3000
+                resolution_y: 3000,
+                image_size: 18
+            },
+            {
+                key: 'maia_wv2',
+                title: 'MAIA WorldView-2',
+                focalLength: 7.5,
+                pixelPitch: 3.75,
+                resolution_x: 1280,
+                resolution_y: 960,
+                image_size: 21.2
+            },
+            {
+                key: 'ricoh_gr2',
+                title: 'RICOH GR 2',
+                focalLength: 18.3,
+                pixelPitch: 4.8,
+                resolution_x: 4928,
+                resolution_y: 3264,
+                image_size: 30.1
             }
         ];
         this.presetFlightSpecs = {
@@ -23,8 +43,8 @@ export class DronePresets {
                 speed: 10
         };
         this.presetSurveySpecs = {
-            overlap_along: 70,
-            overlap_across: 50
+            overlap_along: 80,
+            overlap_across: 60
         };
     };
 }
