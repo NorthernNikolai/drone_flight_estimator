@@ -8,28 +8,43 @@ import { read_all_fields } from './utils.js'
 
 export function generateLines (sa) {
     spinner_show();
-    let field_values = read_all_fields();
-    let general_direction = quick_line_angle(sa);
-    let rotated_bbox_ply = safe_bbox_polygon(sa, general_direction);
-    let line_spacing = calculate_line_spacing(field_values);
-    let initial_survey_lines = line_generator(rotated_bbox_ply, line_spacing);
-    let clipped_survey_lines = line_clip(initial_survey_lines, sa, line_spacing);
-    let shot_spacing = calculate_shot_spacing(field_values);
-    let shot_points = calculate_shot_points(clipped_survey_lines, shot_spacing);
-    console.log(shot_points)
-    L.geoJSON(clipped_survey_lines, {
-        onEachFeature: function ( f, l ) {
-            l.bindPopup(f.properties.survey_line_name);
-        }
-    }).addTo(map);
+    new Promise(
+    (resolve,reject) => {
+        setTimeout(()=> {
+            let field_values = read_all_fields();
+            let general_direction = quick_line_angle(sa);
+            let rotated_bbox_ply = safe_bbox_polygon(sa, general_direction);
+            let line_spacing = calculate_line_spacing(field_values);
+            let initial_survey_lines = line_generator(rotated_bbox_ply, line_spacing);
+            let clipped_survey_lines = line_clip(initial_survey_lines, sa, line_spacing);
+            let transit_lines = calculate_transit_lines(clipped_survey_lines);
+            let shot_spacing = calculate_shot_spacing(field_values);
+            let shot_points = calculate_shot_points(clipped_survey_lines, shot_spacing);
+            console.log(shot_points)
+            L.geoJSON(clipped_survey_lines, {
+                onEachFeature: function ( f, l ) {
+                    l.bindPopup(f.properties.survey_line_name);
+                }
+            }).addTo(map);
 
-    L.geoJSON(shot_points, {
-        onEachFeature: function ( f, l ) {
-            l.bindPopup(f.properties.shotpoint_name);
-        }
-    }).addTo(map);
-    spinner_hide();
-}
+            L.geoJSON(transit_lines, {
+                onEachFeature: function ( f, l ) {
+                    l.bindPopup(f.properties.transit_line_name);
+                }
+            }).addTo(map);
+
+            L.geoJSON(shot_points, {
+                onEachFeature: function ( f, l ) {
+                    l.bindPopup(f.properties.shotpoint_name);
+                }
+            }).addTo(map);
+
+            resolve();
+        }, 1000);
+    }).then(
+        () => spinner_hide()
+    );  
+    }
 
 
 function quick_line_angle(sa) {
@@ -161,6 +176,31 @@ function line_clip(initial_survey_lines, sa_initial, line_spacing) {
 
     return clipped_lines;
 }
+
+function calculate_transit_lines(survey_lines) {
+    let transit_lines = [];
+    let transit_start;
+
+    turf.featureEach(survey_lines, function ( currentLine, featureIndex ) {
+        let transit_end = currentLine.geometry.coordinates[0];
+
+        if ( featureIndex != 0 ) {
+            transit_lines.push(turf.lineString([transit_start, transit_end], {transit_line: featureIndex, transit_line_name: 'transit_line_' + zeroPad (featureIndex, 4 )}));
+            transit_start = [...currentLine.geometry.coordinates].pop();
+        } else {
+            transit_start = [...currentLine.geometry.coordinates].pop();
+        }
+    });
+
+    let transit_lines_collection = turf.featureCollection(transit_lines);
+
+    for ( let k=0; k<transit_lines_collection.features.length; k++ ) {
+        transit_lines_collection.features[k].properties.transit_line_length = turf.length(transit_lines_collection.features[k], {units: 'meters'});
+    }
+
+    return transit_lines_collection;
+}
+
 
 function calculate_shot_spacing( field_values ) {
     let overlap_along = field_values.survey_overlap_along;
