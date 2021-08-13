@@ -120,9 +120,9 @@ function line_generator(rotated_bbox_ply, line_spacing) {
     let line_list = [];
     for( let j=0; j<nr_of_lines; j++ ) {
         if ( j % 2 == 0 ) {
-            line_list[j] = turf.lineString([line_start_point_list[j].geometry.coordinates, line_end_point_list[j].geometry.coordinates], {name: j});
+            line_list[j] = turf.lineString([line_start_point_list[j].geometry.coordinates, line_end_point_list[j].geometry.coordinates], {survey_line: j});
         } else {
-            line_list[j] = turf.lineString([line_end_point_list[j].geometry.coordinates, line_start_point_list[j].geometry.coordinates], {name: j});
+            line_list[j] = turf.lineString([line_end_point_list[j].geometry.coordinates, line_start_point_list[j].geometry.coordinates], {survey_line: j});
         }
     };
     return line_list
@@ -132,6 +132,7 @@ function line_clip(initial_survey_lines, sa_initial, line_spacing) {
     let sa = turf.buffer(sa_initial, line_spacing + 0.5, {units: 'meters'});
     let fgb = [];
     let bbPoly = turf.bboxPolygon(turf.bbox(sa));
+    let used_survey_lines = [];
     initial_survey_lines.forEach(element => {
         let bbLine = turf.bboxPolygon(turf.bbox(element));
         if ( turf.intersect(bbLine, bbPoly) ) {
@@ -141,15 +142,20 @@ function line_clip(initial_survey_lines, sa_initial, line_spacing) {
                 let len = turf.length(curSlc, {units: 'meters'});
                 let ptMiddle = turf.along(curSlc, len/2, {units: 'meters'});
                 if ( turf.inside(ptMiddle, sa.features[0]) ) {
+                    curSlc.properties.survey_line = element.properties.survey_line;
+                    used_survey_lines.push(element.properties.survey_line);
                     fgb.push(curSlc);
                 }
             }
         }
     })
     let clipped_lines = turf.featureCollection(fgb);
+    let min_survey_line = Math.min(...used_survey_lines);
+
     for ( let k=0; k<clipped_lines.features.length; k++ ) {
-        clipped_lines.features[k].properties.survey_line = k;
-        clipped_lines.features[k].properties.survey_line_name = 'survey_line_' + zeroPad (k, 4 );
+        let corrected_survey_line = clipped_lines.features[k].properties.survey_line - min_survey_line + 1;
+        clipped_lines.features[k].properties.survey_line = corrected_survey_line;
+        clipped_lines.features[k].properties.survey_line_name = 'survey_line_' + zeroPad (corrected_survey_line, 4 );
         clipped_lines.features[k].properties.survey_line_length = turf.length(clipped_lines.features[k], {units: 'meters'});
     }
 
