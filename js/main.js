@@ -13,7 +13,7 @@ import { init_generate_lines_button } from './utils.js'
 import { generateLines } from './line_calculation.js'
 import { DronePresets } from './drone_specs.js'
 
-var geojson_blob_survey_area = new Blob( [""], {type: "text/plain;charset=utf-8"} )
+let geojson_blob_survey_area = new Blob( [""], {type: "text/plain;charset=utf-8"} )
 export var geojson_survey_area = [];
 var geojson_survey_area_buffered = [];
 var survey_area_buffer;
@@ -21,7 +21,8 @@ var survey_area_buffer;
 
 export const map = L.map( 'map', {
     minZoom: 0,
-    maxZoom: 23
+    maxZoom: 23,
+	preferCanvas: true,
 }).setView( [51.505, -0.09], 18 );
 
 L.tileLayer( 'http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
