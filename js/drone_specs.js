@@ -36,6 +36,15 @@ export class DronePresets {
                 resolution_x: 4928,
                 resolution_y: 3264,
                 image_size: 30.1
+            },
+            {
+                key: 'sony_imx249',
+                title: 'SONY IMX 249 (SeaCat)',
+                focalLength: 8,
+                pixelPitch: 5.86,
+                resolution_x: 1920,
+                resolution_y: 1200,
+                image_size: 2
             }
         ];
         this.presetFlightSpecs = {
